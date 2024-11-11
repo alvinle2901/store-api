@@ -5,6 +5,14 @@ export type errObjType = {
   detail?: any[];
 };
 
+export const errorTypes = {
+  notFound: "notFound",
+  badRequest: "badRequest",
+  internalError: "internalError",
+  alreadyExists: "alreadyExists",
+  missingCategoryName: "missingCategoryName",
+};
+
 const errorObj = (
   status: number,
   type: string,
@@ -19,13 +27,27 @@ const errorObj = (
 
 export const defaultError = errorObj(
   500,
-  "internalError",
+  errorTypes.internalError,
   "Internal Server Error"
 );
 
-export const page404Error = errorObj(404, "notFound", "Page Not Found");
+export const page404Error = errorObj(
+  404,
+  errorTypes.notFound,
+  "page not found"
+);
 
-export const resource404Error = errorObj(404, "notFound", "Resource Not Found");
+export const resource404Error = errorObj(
+  404,
+  errorTypes.notFound,
+  "resource not found"
+);
+
+export const idNotSpecifiedError = errorObj(
+  400,
+  errorTypes.badRequest,
+  "id not specified in the request"
+);
 
 export default errorObj;
 // {

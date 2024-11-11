@@ -1,6 +1,6 @@
 # yaml-language-server: $schema=https://json-schema.org/draft/2019-09/schema#
 
-version: '3.9'
+version: '3.0'
 services:
   db:
     image: postgres
@@ -9,6 +9,6 @@ services:
     ports:
       - "5437:5432"
     environment:
-      POSTGRES_USER: prisma
-      POSTGRES_PASSWORD: prisma
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: Alvinle292001
       POSTGRES_DB: tests
