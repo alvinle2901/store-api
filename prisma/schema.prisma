@@ -1,0 +1,102 @@
+generator client {
+  provider        = "prisma-client-js"
+  binaryTargets   = ["native", "debian-openssl-1.1.x", "linux-musl"]
+  previewFeatures = ["fullTextSearch"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  SUPERADMIN
+  ADMIN
+  MODERATOR
+}
+
+model Admin {
+  id        Int       @id @default(autoincrement())
+  username  String    @db.VarChar(50)
+  email     String    @unique @db.VarChar(50)
+  password  String    @db.VarChar(255)
+  role      Role      @default(ADMIN)
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime? @map("updated_at")
+
+  @@map("admins")
+}
+
+model Category {
+  id             Int       @id @default(autoincrement())
+  name           String    @db.VarChar(50)
+  description    String?   @db.VarChar(255)
+  thumbnailImage String?   @map("thumbnail_image") @db.VarChar(100)
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime? @map("updated_at")
+  products       Product[]
+
+  @@map("categories")
+}
+
+model Product {
+  id              Int           @id @default(autoincrement())
+  name            String        @db.VarChar(50)
+  price           Decimal       @db.Decimal(7, 2)
+  discountPercent Int?          @default(0) @map("discount_percent")
+  description     String        @db.VarChar(255)
+  detail          String?
+  category        Category?     @relation(fields: [categoryId], references: [id], onDelete: NoAction)
+  categoryId      Int?          @map("category_id")
+  image1          String        @map("image_1") @db.VarChar(100)
+  image2          String        @map("image_2") @db.VarChar(100)
+  stock           Int?          @default(0)
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime?     @map("updated_at")
+  product         OrderDetail[]
+
+  @@map("products")
+}
+
+model Customer {
+  id              Int       @id @default(autoincrement())
+  fullname        String    @db.VarChar(50)
+  email           String    @unique @db.VarChar(50)
+  password        String    @db.VarChar(255)
+  shippingAddress String    @map("default_shipping_address")
+  phone           String?   @db.VarChar(20)
+  orders          Order[]
+  resetPwdToken   String?   @unique @map("reset_password_token") @db.VarChar(255)
+  resetPwdExpire  DateTime? @map("reset_password_expire")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime? @map("updated_at")
+
+  @@map("customers")
+}
+
+model Order {
+  orderNumber  Int           @id @default(autoincrement()) @map("order_number")
+  customer     Customer      @relation(fields: [customerId], references: [id])
+  customerId   Int           @map("customer_id")
+  address      String
+  township     String        @db.VarChar(20)
+  city         String        @db.VarChar(20)
+  state        String        @db.VarChar(20)
+  zipCode      String        @map("zip_code") @db.VarChar(20)
+  orderDate    DateTime      @map("order_date") @db.Date
+  deliveryDate DateTime      @map("delivery_date") @db.Date
+  order        OrderDetail[]
+
+  @@map("orders")
+}
+
+model OrderDetail {
+  order       Order   @relation(fields: [orderNumber], references: [orderNumber], onDelete: Cascade)
+  orderNumber Int
+  product     Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productId   Int
+  quantity    Int     @default(1)
+
+  @@id([orderNumber, productId])
+  @@map("order_details")
+}

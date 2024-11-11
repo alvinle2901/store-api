@@ -1,0 +1,14 @@
+# yaml-language-server: $schema=https://json-schema.org/draft/2019-09/schema#
+
+version: '3.9'
+services:
+  db:
+    image: postgres
+    restart: unless-stopped
+    container_name: integration-tests-prisma
+    ports:
+      - "5437:5432"
+    environment:
+      POSTGRES_USER: prisma
+      POSTGRES_PASSWORD: prisma
+      POSTGRES_DB: tests
