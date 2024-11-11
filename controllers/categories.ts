@@ -1,13 +1,13 @@
-import prisma from "../prisma/client";
-import asyncHandler from "../middlewares/asyncHandler";
-import ErrorResponse from "../utils/errorResponse";
+import prisma from '../prisma/client';
+import asyncHandler from '../middlewares/asyncHandler';
+import ErrorResponse from '../utils/errorResponse';
+import { errorTypes, resource404Error } from '../utils/errorObject';
 import {
-  errorTypes,
-  idNotSpecifiedError,
-  resource404Error,
-} from "../utils/errorObject";
-import { orderedQuery, selectedQuery } from "../utils/queryFilters";
-import { Prisma } from ".prisma/client";
+  checkRequiredFields,
+  orderedQuery,
+  selectedQuery
+} from '../utils/queryFilters';
+import { Prisma } from '.prisma/client';
 
 // @desc    Get all categories
 // @route   GET /api/v1/categories
@@ -31,16 +31,18 @@ export const getCategories = asyncHandler(async (req, res, next) => {
 
   // If order_by is sent along with request
   if (queryOrder) {
-    orderBy = orderedQuery(queryOrder as string, orderBy);
+    orderBy = orderedQuery(queryOrder as string);
   }
 
   // Find categories with Prisma Client
   const categories = await prisma.category.findMany({
     select,
-    orderBy,
+    orderBy
   });
 
-  res.status(200).json({ success: true, data: categories });
+  res
+    .status(200)
+    .json({ success: true, count: categories.length, data: categories });
 });
 
 // @desc    Get specific category
@@ -58,7 +60,7 @@ export const getCategory = asyncHandler(async (req, res, next) => {
 
   const category = await prisma.category.findUnique({
     where: { id },
-    select,
+    select
   });
 
   // Throws an error if category does not exists
@@ -68,7 +70,7 @@ export const getCategory = asyncHandler(async (req, res, next) => {
 
   res.status(200).json({
     success: true,
-    data: category,
+    data: category
   });
 });
 
@@ -82,18 +84,12 @@ export const createCategory = asyncHandler(async (req, res, next) => {
   const thumbnailImage: string | undefined = req.body.thumbnailImage;
   let name: string | undefined;
 
-  // Throws an error if name is not specified
-  if (!queryName) {
-    const noNameError = {
-      status: 400,
-      type: errorTypes.missingCategoryName,
-      message: "category name field is missing",
-    };
-    return next(new ErrorResponse(noNameError, 400));
-  }
+  // Throws an error if name field is not specified
+  const hasError = checkRequiredFields({ name: queryName }, next);
+  if (hasError !== false) return hasError;
 
   // Trim the name and change it to lower-case
-  name = queryName.trim().toLowerCase();
+  name = (queryName as string).trim().toLowerCase();
 
   // Create a category in prisma client
   const category = await prisma.category.create({
@@ -101,16 +97,16 @@ export const createCategory = asyncHandler(async (req, res, next) => {
       id: id as number,
       name: name as string,
       description,
-      thumbnailImage,
-    },
+      thumbnailImage
+    }
   });
 
   res.status(201).json({
     success: true,
-    location: `${req.protocol}://${req.get("host")}${req.baseUrl}/${
+    location: `${req.protocol}://${req.get('host')}${req.baseUrl}/${
       category.id
     }`,
-    data: category,
+    data: category
   });
 });
 
@@ -121,11 +117,11 @@ export const deleteCategory = asyncHandler(async (req, res, next) => {
   const id = parseInt(req.params.id);
 
   await prisma.category.delete({
-    where: { id },
+    where: { id }
   });
 
   res.status(204).json({
     success: true,
-    data: [],
+    data: []
   });
 });

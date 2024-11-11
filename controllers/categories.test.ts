@@ -1,12 +1,7 @@
 import app from '../app';
-import express from 'express';
-import request from 'supertest';
+import * as request from 'supertest';
 import 'jest-sorted';
-import {
-  errorTypes,
-  idNotSpecifiedError,
-  resource404Error
-} from '../utils/errorObject';
+import { errorTypes, resource404Error } from '../utils/errorObject';
 
 const url = '/api/v1/categories';
 
@@ -21,6 +16,7 @@ describe('Categories Controller', () => {
       expect(response.body.data).toBeDefined;
       expect(response.body).toEqual({
         success: true,
+        count: expect.any(Number),
         data: expect.arrayContaining([
           expect.objectContaining({
             id: expect.any(Number),
@@ -41,6 +37,7 @@ describe('Categories Controller', () => {
 
       expect(response.body).toEqual({
         success: true,
+        count: expect.any(Number),
         data: expect.arrayContaining([
           {
             name: expect.any(String),
@@ -136,7 +133,7 @@ describe('Categories Controller', () => {
 
     it('POST /categories --> return error if name already exists', async () => {
       const newUser = {
-        name: 'men',
+        name: 'Men',
         description: 'sapien non mi integer'
       };
       const response = await request(app)
@@ -166,8 +163,14 @@ describe('Categories Controller', () => {
         success: false,
         error: {
           status: 400,
-          type: errorTypes.missingCategoryName,
-          message: 'category name field is missing'
+          type: errorTypes.invalidArgument,
+          message: 'invalid one or more argument(s)',
+          detail: [
+            {
+              code: 'missingName',
+              message: 'name field is missing'
+            }
+          ]
         }
       });
     });

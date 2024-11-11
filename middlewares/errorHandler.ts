@@ -10,6 +10,10 @@ const errorHandler: ErrorRequestHandler = (err, req, res, next) => {
   //   const message = `Resource not found with id of ${err.value}`;
   //   error = new ErrorResponse(message, 404)
   // }
+  if (process.env.NODE_ENV === 'development') {
+    console.log('Error Handler get called');
+    console.error(err);
+  }
 
   // Unique constraint failed
   if (err.code === 'P2002') {
