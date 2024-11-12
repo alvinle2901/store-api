@@ -1,15 +1,15 @@
-import bcrypt from 'bcrypt';
 import asyncHandler from '../middlewares/asyncHandler';
 import prisma from '../prisma/client';
 import {
   checkRequiredFields,
+  comparePassword,
   generateToken,
+  hashPassword,
   validateEmail
 } from '../utils/helpers';
 import ErrorResponse from '../utils/errorResponse';
 import errorObj, { errorTypes, unauthError } from '../utils/errorObject';
-
-const saltRounds = 10;
+import { ExtendedRequest } from '../utils/extendedRequest';
 
 // @desc    Register New Customer
 // @route   POST /api/v1/auth/register
@@ -37,7 +37,7 @@ export const registerCustomer = asyncHandler(async (req, res, next) => {
   }
 
   // Hash password
-  password = await bcrypt.hash(password, saltRounds);
+  password = await hashPassword(password);
 
   const customer = await prisma.customer.create({
     data: {
@@ -79,7 +79,7 @@ export const loginCustomer = asyncHandler(async (req, res, next) => {
   }
 
   // Check pwd with hashed pwd stored in db
-  const result = await bcrypt.compare(password, customer.password);
+  const result = await comparePassword(password, customer.password);
 
   // Throws error if password is incorrect
   if (!result) {
@@ -91,5 +91,26 @@ export const loginCustomer = asyncHandler(async (req, res, next) => {
   res.status(200).json({
     success: true,
     token: token
+  });
+});
+
+// @desc    Get Current Logged-in User
+// @route   GET /api/v1/auth/me
+// @access  Private
+export const getMe = asyncHandler(async (req: ExtendedRequest, res, next) => {
+  const user = await prisma.customer.findUnique({
+    where: { id: req!.user!.id },
+    select: {
+      id: true,
+      fullname: true,
+      email: true,
+      shippingAddress: true,
+      phone: true
+    }
+  });
+
+  res.status(200).json({
+    success: true,
+    data: user
   });
 });

@@ -1,3 +1,5 @@
+import jwt from 'jsonwebtoken';
+import bcrypt from 'bcrypt';
 import { NextFunction } from 'express';
 import {
   invalidArgDetail,
@@ -5,14 +7,25 @@ import {
   ErrorDetailType
 } from './errorObject';
 import ErrorResponse from './errorResponse';
-import jwt from 'jsonwebtoken';
 
 type OrderType = { [key: string]: string };
 type FilteredType = { [key: string]: number };
 
+/**
+ * Receive comma seperated string and return { string: true }
+ * @param query - comma seperated string
+ * @returns object { string: true, string: true }
+ * @example 'name,price,stock' => { name: true, price: true, stock: true }
+ */
 export const selectedQuery = (query: string) =>
   query.split(',').reduce((a, v) => ({ ...a, [v.trim()]: true }), {});
 
+/**
+ * Receive string and return array of { key: value } pairs
+ * @param query - query string
+ * @returns array of object [ {key:value}, etc]
+ * @example 'price.desc,name' => [ { price: 'desc' }, { name: 'asc' } ]
+ */
 export const orderedQuery = (query: string) => {
   let orderArray: OrderType[] = [];
   const sortLists = query.split(',');
@@ -26,6 +39,13 @@ export const orderedQuery = (query: string) => {
   return orderArray;
 };
 
+/**
+ * Receive string or string[] and return array of { key: value } pairs
+ * @param query - query string or string[]
+ * @returns array of object [ {key: value}, etc ]
+ * @example ['gte:50','lt:100'] => [ { gte: 50 }, { lt: 100 } ]
+ * @example 'gte:50' => [ { gte: 50 } ]
+ */
 export const filteredQty = (query: string | string[]) => {
   const obj: FilteredType = {};
   const obj2: FilteredType = {};
@@ -48,10 +68,10 @@ export const filteredQty = (query: string | string[]) => {
 };
 
 /**
- * Documentation
- * @param requiredObj
- * @param next
- * @returns false (hasError) || ErrorResponse
+ * Check required fields
+ * @param requiredObj - required fields as an object
+ * @param next - express next function
+ * @returns false (hasError) | ErrorResponse
  */
 export const checkRequiredFields = (
   requiredObj: { [key: string]: string | undefined },
@@ -70,14 +90,45 @@ export const checkRequiredFields = (
   }
 };
 
+/**
+ * Check if a number is positive integer
+ * @param num - number to be checked
+ * @returns true | false
+ */
 export const isIntegerAndPositive = (num: number) => num % 1 === 0 && num > 0;
 
+/**
+ * Check email is valid
+ * @param email - email to be checked
+ * @returns true | false
+ */
 export const validateEmail = (email: string) => {
-  const emailRegex =
-    /[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*@(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?/;
+  const emailRegex = /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/;
   return emailRegex.test(String(email).toLowerCase());
 };
 
+/**
+ * Hash plain text password
+ * @param password - plain password
+ * @returns hashed password (Promise)
+ */
+export const hashPassword = (password: string) => bcrypt.hash(password, 10);
+
+/**
+ * Compare input password with stored hashed password
+ * @param inputPassword - input password
+ * @param storedPassword - hashed password stored in db
+ * @returns true | false (Promise)
+ */
+export const comparePassword = (inputPwd: string, storedPwd: string) =>
+  bcrypt.compare(inputPwd, storedPwd);
+
+/**
+ * Generate JsonWebToken
+ * @param {number} id - User ID
+ * @param {string} email - User Email
+ * @returns jwt
+ */
 export const generateToken = (id: number, email: string) =>
   jwt.sign(
     {
