@@ -5,6 +5,7 @@ import {
   ErrorDetailType
 } from './errorObject';
 import ErrorResponse from './errorResponse';
+import jwt from 'jsonwebtoken';
 
 type OrderType = { [key: string]: string };
 type FilteredType = { [key: string]: number };
@@ -46,6 +47,12 @@ export const filteredQty = (query: string | string[]) => {
   return filteredValue;
 };
 
+/**
+ * Documentation
+ * @param requiredObj
+ * @param next
+ * @returns false (hasError) || ErrorResponse
+ */
 export const checkRequiredFields = (
   requiredObj: { [key: string]: string | undefined },
   next: NextFunction
@@ -64,3 +71,20 @@ export const checkRequiredFields = (
 };
 
 export const isIntegerAndPositive = (num: number) => num % 1 === 0 && num > 0;
+
+export const validateEmail = (email: string) => {
+  const emailRegex =
+    /[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*@(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?/;
+  return emailRegex.test(String(email).toLowerCase());
+};
+
+export const generateToken = (id: number, email: string) =>
+  jwt.sign(
+    {
+      iat: Math.floor(Date.now() / 1000) - 30,
+      id,
+      email
+    },
+    process.env.JWT_SECRET as string,
+    { expiresIn: '1h' }
+  );

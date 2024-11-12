@@ -7,7 +7,7 @@
     "start": "node dist/server.js",
     "devStart": "nodemon server.ts",
     "dev": "docker-compose up",
-    "dev:down": "docker-compose down && docker network prune",
+    "dev:down": "docker-compose down",
     "dev:build": "docker-compose up --build",
     "build": "tsc -p .",
     "migrate:test": "dotenv -e .env.test -- npx prisma migrate dev --name postgres-init",
@@ -26,13 +26,17 @@
   "license": "ISC",
   "dependencies": {
     "@prisma/client": "^5.22.0",
+    "bcrypt": "^5.1.1",
     "dotenv": "^16.4.5",
     "express": "^4.21.1",
+    "jsonwebtoken": "^9.0.2",
     "node": "^22.11.0"
   },
   "devDependencies": {
+    "@types/bcrypt": "^5.0.2",
     "@types/express": "^5.0.0",
     "@types/jest": "^29.5.14",
+    "@types/jsonwebtoken": "^9.0.7",
     "@types/morgan": "^1.9.9",
     "@types/node": "^22.9.0",
     "@types/supertest": "^6.0.2",

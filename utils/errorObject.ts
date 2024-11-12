@@ -12,7 +12,8 @@ export const errorTypes = {
   alreadyExists: 'alreadyExists',
   missingField: 'missingField',
   invalidQuery: 'invalidQuery',
-  invalidArgument: 'invalidArgument'
+  invalidArgument: 'invalidArgument',
+  unauthorized: 'unauthorized'
 };
 
 const errorObj = (
@@ -31,6 +32,18 @@ export const defaultError = errorObj(
   500,
   errorTypes.internalError,
   'Internal Server Error'
+);
+
+export const unauthError = errorObj(
+  401,
+  errorTypes.unauthorized,
+  'email or password is incorrect'
+);
+
+export const unauthAccess = errorObj(
+  401,
+  errorTypes.unauthorized,
+  "not authorized to access this route"
 );
 
 export const page404Error = errorObj(
