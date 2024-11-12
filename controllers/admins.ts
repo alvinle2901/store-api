@@ -3,9 +3,10 @@ import prisma from '../prisma/client';
 import errorObj, {
   errorTypes,
   invalidEmail,
-  unauthError
+  incorrectCredentialsError
 } from '../utils/errorObject';
 import ErrorResponse from '../utils/errorResponse';
+import { ExtendedRequest } from '../utils/extendedRequest';
 import {
   checkRequiredFields,
   comparePassword,
@@ -89,7 +90,7 @@ export const loginAdmin = asyncHandler(async (req, res, next) => {
 
   // Throws error if email is incorrect
   if (!admin) {
-    return next(new ErrorResponse(unauthError, 401));
+    return next(new ErrorResponse(incorrectCredentialsError, 401));
   }
 
   // Check pwd with hashed pwd stored in db
@@ -97,7 +98,7 @@ export const loginAdmin = asyncHandler(async (req, res, next) => {
 
   // Throws error if password is incorrect
   if (!result) {
-    return next(new ErrorResponse(unauthError, 401));
+    return next(new ErrorResponse(incorrectCredentialsError, 401));
   }
 
   // Generate a jwt
@@ -106,5 +107,25 @@ export const loginAdmin = asyncHandler(async (req, res, next) => {
   res.status(200).json({
     success: true,
     token
+  });
+});
+
+// @desc    Get Current Logged-in Admin
+// @route   GET /api/v1/admins/me
+// @access  Private
+export const getMe = asyncHandler(async (req: ExtendedRequest, res, next) => {
+  const user = await prisma.admin.findUnique({
+    where: { id: req!.admin!.id },
+    select: {
+      id: true,
+      username: true,
+      email: true,
+      role: true
+    }
+  });
+
+  res.status(200).json({
+    success: true,
+    data: user
   });
 });

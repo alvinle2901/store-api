@@ -1,6 +1,7 @@
-import { Customer } from '.prisma/client';
-import { Request } from 'express';
+import { Admin, Customer } from ".prisma/client";
+import { Request } from "express";
 
 export interface ExtendedRequest extends Request {
-  user?: Customer | null; // or any other type
+  user?: Customer | null;
+  admin?: Admin | null;
 }

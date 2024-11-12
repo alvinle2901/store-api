@@ -13,7 +13,8 @@ export const errorTypes = {
   missingField: 'missingField',
   invalidQuery: 'invalidQuery',
   invalidArgument: 'invalidArgument',
-  unauthorized: 'unauthorized'
+  unauthorized: 'unauthorized',
+  forbidden: 'forbidden'
 };
 
 const errorObj = (
@@ -40,16 +41,22 @@ export const invalidEmail = errorObj(
   'email is not valid'
 );
 
-export const unauthError = errorObj(
+export const unauthorizedError = errorObj(
+  403,
+  errorTypes.forbidden,
+  "not authorized"
+);
+
+export const incorrectCredentialsError = errorObj(
   401,
   errorTypes.unauthorized,
   'email or password is incorrect'
 );
 
-export const unauthAccess = errorObj(
+export const authRequiredError = errorObj(
   401,
   errorTypes.unauthorized,
-  'not authorized to access this route'
+  'authentication required'
 );
 
 export const page404Error = errorObj(
