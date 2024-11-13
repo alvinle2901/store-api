@@ -3,13 +3,19 @@ import {
   createCategory,
   deleteCategory,
   getCategories,
-  getCategory
+  getCategory,
+  updateCategory
 } from '../controllers/categories';
+import { adminOnly } from '../middlewares/authHandler';
 
 const router = Router();
 
-router.get('/', getCategories).post('/', createCategory);
+router.route('/').get(getCategories).post(adminOnly, createCategory);
 
-router.get('/:id', getCategory).delete('/:id', deleteCategory);
+router
+  .route('/:id')
+  .get(getCategory)
+  .put(adminOnly, updateCategory)
+  .delete(adminOnly, deleteCategory);
 
 export default router;
