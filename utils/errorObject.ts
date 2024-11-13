@@ -73,12 +73,6 @@ export const authRequiredError = errorObj(
   'authentication required'
 );
 
-export const page404Error = errorObj(
-  404,
-  errorTypes.notFound,
-  'page not found'
-);
-
 export const resource404Error = (resource: string = 'resource') =>
   errorObj(404, errorTypes.notFound, `${resource} not found`);
 
