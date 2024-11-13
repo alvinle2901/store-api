@@ -1,5 +1,10 @@
 import { Router } from 'express';
-import { loginCustomer, registerCustomer } from '../controllers/auth';
+import {
+  changePassword,
+  loginCustomer,
+  registerCustomer,
+  updateCustomerSelf
+} from '../controllers/auth';
 import { protect } from '../middlewares/authHandler';
 
 const router = Router();
@@ -9,6 +14,10 @@ router
     res.json({ msg: 'Hello World' });
   })
   .post('/register', registerCustomer)
-  .post('/login', loginCustomer);
+  .post('/login', loginCustomer)
+  .put('/update-details', protect, updateCustomerSelf)
+  .put('/change-password', protect, changePassword)
+  .post('/forgot-password')
+  .post('/reset-password/:resettoken');
 
 export default router;

@@ -1,5 +1,6 @@
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
+import crypto from 'crypto';
 import { NextFunction } from 'express';
 import {
   invalidArgDetail,
@@ -149,3 +150,22 @@ export const generateToken = (id: number, email: string) =>
     process.env.JWT_SECRET as string,
     { expiresIn: '1h' }
   );
+
+/**
+ * Generate Reset Password Token
+ * @returns Array - [resetToken,resetPwdToken,resetPwdExpire]
+ */
+export const generateResetPwdToken = () => {
+  // Generate token
+  const resetToken = crypto.randomBytes(20).toString('hex');
+
+  // Hash token and set to resetPwdToken field
+  const resetPwdToken = crypto
+    .createHash('sha256')
+    .update(resetToken)
+    .digest('hex');
+    
+  // Set expire
+  const resetPwdExpire = Date.now() + 10 * 60 * 1000;
+  return [resetToken, resetPwdToken, resetPwdExpire];
+};

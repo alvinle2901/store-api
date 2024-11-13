@@ -5,7 +5,8 @@ import prisma from '../prisma/client';
 import {
   errorTypes,
   authRequiredError,
-  incorrectCredentialsError
+  incorrectCredentialsError,
+  resource404Error
 } from '../utils/errorObject';
 
 const url = '/api/v1/auth';
@@ -16,6 +17,13 @@ const newUser = {
   password: 'newuserpassword',
   shippingAddress: 'helsinki',
   phone: '09283928'
+};
+
+const updateUser = {
+  fullname: 'new username',
+  email: 'updatedemail3@gmail.com',
+  shippingAddress: 'updated shipping addr',
+  phone: '099384938'
 };
 
 let authToken: string;
@@ -31,12 +39,6 @@ describe('Auth Controller', () => {
 
       expect(response.body.success).toBe(true);
       expect(response.body.token).toBeString();
-
-      // delete user after register
-      const deleteUser = await prisma.customer.delete({
-        where: { email: newUser.email }
-      });
-      expect(deleteUser).toBeDefined();
     });
 
     it('POST /auth/register --> should throw error if required fields not include', async () => {
@@ -99,6 +101,64 @@ describe('Auth Controller', () => {
         type: errorTypes.invalidArgument,
         message: 'email is not valid'
       });
+    });
+  });
+
+  describe('Update Customer', () => {
+    let loginToken = '';
+    it('PUT /auth/update-details --> should update customer data (self)', async () => {
+      // login
+      const loginRresponse = await request(app)
+        .post(`${url}/login`)
+        .send({ email: newUser.email, password: newUser.password })
+        .expect('Content-Type', /json/)
+        .expect(200);
+      loginToken = loginRresponse.body.token;
+      const response = await request(app)
+        .put(`${url}/update-details`)
+        .set('Authorization', 'Bearer ' + loginToken)
+        .send(updateUser)
+        .expect('Content-Type', /json/)
+        .expect(200);
+      expect(response.body.success).toBe(true);
+      expect(response.body.data).toEqual({
+        ...updateUser,
+        updatedAt: expect.any(String)
+      });
+    });
+    it('PUT /auth/change-password --> should return error if current password is incorrect', async () => {
+      const response = await request(app)
+        .put(`${url}/change-password`)
+        .set('Authorization', 'Bearer ' + loginToken)
+        .send({
+          currentPassword: 'wrong password',
+          newPassword: 'newpassword'
+        })
+        .expect('Content-Type', /json/)
+        .expect(401);
+      expect(response.body.success).toBe(false);
+      expect(response.body.error).toEqual({
+        ...incorrectCredentialsError,
+        message: 'current password is incorrect'
+      });
+    });
+    it('PUT /auth/change-password --> should update password', async () => {
+      const response = await request(app)
+        .put(`${url}/change-password`)
+        .set('Authorization', 'Bearer ' + loginToken)
+        .send({
+          currentPassword: newUser.password,
+          newPassword: 'newpassword'
+        })
+        .expect('Content-Type', /json/)
+        .expect(200);
+      expect(response.body.success).toBe(true);
+      expect(response.body.message).toEqual('password has been updated');
+      // delete user after register and test
+      const deleteUser = await prisma.customer.delete({
+        where: { email: updateUser.email }
+      });
+      expect(deleteUser).toBeDefined();
     });
   });
 
@@ -176,6 +236,70 @@ describe('Auth Controller', () => {
         email: expect.any(String),
         shippingAddress: expect.any(String),
         phone: expect.toBeOneOf([String, null])
+      });
+    });
+  });
+
+  describe("Forgot and Reset Password", () => {
+    it("POST /auth/forgot-password --> should throws error if email not include", async () => {
+      const response = await request(app)
+        .post(`${url}/forgot-password`)
+        .expect("Content-Type", /json/)
+        .expect(400);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.error).toEqual({
+        status: 400,
+        type: errorTypes.invalidArgument,
+        message: "invalid one or more argument(s)",
+        detail: [
+          {
+            code: "missingEmail",
+            message: "email field is missing",
+          },
+        ],
+      });
+    });
+
+    it("POST /auth/forgot-password --> should throws 404 error if email not found", async () => {
+      const response = await request(app)
+        .post(`${url}/forgot-password`)
+        .send({ email: "invalidemail@gmail.com" })
+        .expect("Content-Type", /json/)
+        .expect(404);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.error).toEqual(resource404Error);
+    });
+
+    // it("POST /auth/forgot-password --> should send email", async () => {
+    //   const response = await request(app)
+    //     .post(`${url}/forgot-password`)
+    //     .send({ email: "dgohn0@gravatar.com" })
+    //     .expect("Content-Type", /json/)
+    //     .expect(200);
+    //   expect(response.body.success).toBe(true);
+    //   expect(response.body.message).toEqual("Email has been sent...");
+    // });
+
+    /*=========== Reset Password ===========*/
+    it("POST /auth/reset-password/resetToken --> should throws error if password not include", async () => {
+      const response = await request(app)
+        .put(`${url}/reset-password/resetToken`)
+        .expect("Content-Type", /json/)
+        .expect(400);
+        
+      expect(response.body.success).toBe(false);
+      expect(response.body.error).toEqual({
+        status: 400,
+        type: errorTypes.invalidArgument,
+        message: "invalid one or more argument(s)",
+        detail: [
+          {
+            code: "missingPassword",
+            message: "password field is missing",
+          },
+        ],
       });
     });
   });

@@ -21,7 +21,7 @@ model Admin {
   email     String    @unique @db.VarChar(50)
   password  String    @db.VarChar(255)
   role      Role      @default(ADMIN)
-  active      Boolean   @default(true)
+  active    Boolean   @default(true)
   createdAt DateTime  @default(now()) @map("created_at")
   updatedAt DateTime? @map("updated_at")
 
@@ -68,7 +68,7 @@ model Customer {
   phone           String?   @db.VarChar(20)
   orders          Order[]
   resetPwdToken   String?   @unique @map("reset_password_token") @db.VarChar(255)
-  resetPwdExpire  DateTime? @map("reset_password_expire")
+  resetPwdExpire  BigInt?   @map("reset_password_expire") @db.BigInt
   createdAt       DateTime  @default(now()) @map("created_at")
   updatedAt       DateTime? @map("updated_at")
 
