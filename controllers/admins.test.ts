@@ -6,7 +6,8 @@ import {
   errorTypes,
   authRequiredError,
   incorrectCredentialsError,
-  unauthorizedError
+  unauthorizedError,
+  resource404Error
 } from '../utils/errorObject';
 
 const url = '/api/v1/admins';
@@ -200,42 +201,7 @@ describe('Admins', () => {
   });
 
   describe('Update Admin', () => {
-    it("PUT /admins --> should update admin data", async () => {
-      // login first
-      const loginResponse = await request(app)
-        .post(`${url}/login`)
-        .send({ email: testAdmin.email, password: testAdmin.password })
-        .expect("Content-Type", /json/)
-        .expect(200);
-
-      const updateAdmin = {
-        username: "new admin name",
-        email: "newemail2@gmail.com",
-      };
-
-      const response = await request(app)
-        .put(url)
-        .set("Authorization", "Bearer " + loginResponse.body.token)
-        .send(updateAdmin)
-        .expect("Content-Type", /json/)
-        .expect(200);
-      expect(response.body.success).toBe(true);
-      expect(response.body.data).toEqual({
-        ...updateAdmin,
-        updatedAt: expect.any(String),
-      });
-
-      // Update to previous testAdmin again
-      const response2 = await request(app)
-        .put(url)
-        .set("Authorization", "Bearer " + loginResponse.body.token)
-        .send({ username: testAdmin.username, email: testAdmin.email })
-        .expect("Content-Type", /json/)
-        .expect(200);
-      expect(response2.body.success).toBe(true);
-    });
-
-    it('POST /admins/change-password --> should update password', async () => {
+    it('PUT /admins --> should update admin data (self)', async () => {
       // login first
       const loginResponse = await request(app)
         .post(`${url}/login`)
@@ -243,8 +209,43 @@ describe('Admins', () => {
         .expect('Content-Type', /json/)
         .expect(200);
 
+      const updateAdmin = {
+        username: 'new admin name',
+        email: 'newemail2@gmail.com'
+      };
+
       const response = await request(app)
-        .post(`${url}/change-password`)
+        .put(url)
+        .set('Authorization', 'Bearer ' + loginResponse.body.token)
+        .send(updateAdmin)
+        .expect('Content-Type', /json/)
+        .expect(200);
+      expect(response.body.success).toBe(true);
+      expect(response.body.data).toEqual({
+        ...updateAdmin,
+        updatedAt: expect.any(String)
+      });
+
+      // Update to previous testAdmin again
+      const response2 = await request(app)
+        .put(url)
+        .set('Authorization', 'Bearer ' + loginResponse.body.token)
+        .send({ username: testAdmin.username, email: testAdmin.email })
+        .expect('Content-Type', /json/)
+        .expect(200);
+      expect(response2.body.success).toBe(true);
+    });
+
+    it('PUT /admins/change-password --> should update password', async () => {
+      // login first
+      const loginResponse = await request(app)
+        .put(`${url}/login`)
+        .send({ email: testAdmin.email, password: testAdmin.password })
+        .expect('Content-Type', /json/)
+        .expect(200);
+
+      const response = await request(app)
+        .put(`${url}/change-password`)
         .set('Authorization', 'Bearer ' + loginResponse.body.token)
         .send({
           currentPassword: testAdmin.password,
@@ -257,16 +258,16 @@ describe('Admins', () => {
       expect(response.body.message).toEqual('password has been updated');
     });
 
-    it('POST /admins/change-password --> should return error if current password is incorrect', async () => {
+    it('PUT /admins/change-password --> should return error if current password is incorrect', async () => {
       // login first
       const loginResponse = await request(app)
-        .post(`${url}/login`)
+        .put(`${url}/login`)
         .send({ email: testAdmin.email, password: 'newpassword' })
         .expect('Content-Type', /json/)
         .expect(200);
 
       const response = await request(app)
-        .post(`${url}/change-password`)
+        .put(`${url}/change-password`)
         .set('Authorization', 'Bearer ' + loginResponse.body.token)
         .send({
           currentPassword: 'wrong password',
@@ -286,6 +287,49 @@ describe('Admins', () => {
         where: { email: testAdmin.email }
       });
       expect(deleteAdmin).toBeDefined();
+    });
+
+    it('PUT /admins/:id --> should update an admin (by superadmin)', async () => {
+      const admin = await prisma.admin.findUnique({
+        where: { email: testAdmin.email }
+      });
+      const reqBody = {
+        username: 'updated name',
+        email: 'updatedemail2@gmail.com',
+        password: 'updatedpassword',
+        role: 'MODERATOR',
+        active: false
+      };
+      const response = await request(app)
+        .put(`${url}/${admin!.id}`)
+        .set('Authorization', 'Bearer ' + authToken)
+        .send(reqBody)
+        .expect('Content-Type', /json/)
+        .expect(200);
+      expect(response.body.success).toBe(true);
+      expect(response.body.data).toEqual({
+        ...reqBody,
+        id: expect.any(Number),
+        createdAt: expect.any(String),
+        updatedAt: expect.any(String)
+      });
+      // restore default for testAdmin
+      await request(app)
+        .put(`${url}/${admin!.id}`)
+        .set('Authorization', 'Bearer ' + authToken)
+        .send(testAdmin)
+        .expect('Content-Type', /json/)
+        .expect(200);
+    });
+
+    it('PUT /admins/:id --> should throw 404 Error if not found', async () => {
+      const response = await request(app)
+        .put(`${url}/999`)
+        .set('Authorization', 'Bearer ' + authToken)
+        .expect('Content-Type', /json/)
+        .expect(404);
+      expect(response.body.success).toBe(false);
+      expect(response.body.error).toEqual(resource404Error);
     });
   });
 
@@ -314,6 +358,78 @@ describe('Admins', () => {
         email: expect.any(String),
         role: expect.toBeOneOf(['SUPERADMIN', 'ADMIN', 'MODERATOR'])
       });
+    });
+  });
+});
+
+describe('Get Admins', () => {
+  it('GET /admins --> should return all admins', async () => {
+    const response = await request(app)
+      .get(url)
+      .set('Authorization', 'Bearer ' + authToken)
+      .expect('Content-Type', /json/)
+      .expect(200);
+    expect(response.body.count).toBeNumber;
+    expect(response.body.success).toBe(true);
+    expect(response.body.data).toEqual(
+      expect.arrayContaining([
+        {
+          id: expect.any(Number),
+          username: expect.any(String),
+          email: expect.any(String),
+          role: expect.toBeOneOf(['SUPERADMIN', 'ADMIN', 'MODERATOR']),
+          active: expect.any(Boolean),
+          createdAt: expect.any(String),
+          updatedAt: expect.toBeOneOf([String, null])
+        }
+      ])
+    );
+  });
+
+  it('GET /admins/:id --> should return specific admin', async () => {
+    const response = await request(app)
+      .get(`${url}/2`)
+      .set('Authorization', 'Bearer ' + authToken)
+      .expect('Content-Type', /json/)
+      .expect(200);
+    expect(response.body.success).toBe(true);
+    expect(response.body.data.id).toBe(2);
+  });
+
+  it('GET /admins/:id --> should throw 404 Error if not found', async () => {
+    const response = await request(app)
+      .get(`${url}/999`)
+      .set('Authorization', 'Bearer ' + authToken)
+      .expect('Content-Type', /json/)
+      .expect(404);
+    expect(response.body.success).toBe(false);
+    expect(response.body.error).toEqual(resource404Error);
+  });
+});
+
+describe('Delete Admin', () => {
+  it('DELETE /admins/:id --> should delete admin', async () => {
+    const adminToDelete = await prisma.admin.findUnique({
+      where: { email: testAdmin.email }
+    });
+    await request(app)
+      .delete(`${url}/${adminToDelete!.id}`)
+      .set('Authorization', 'Bearer ' + authToken)
+      .expect('Content-Type', /json/)
+      .expect(203);
+  });
+
+  it('DELETE /admins/:id --> should throw error if admin not found', async () => {
+    const response = await request(app)
+      .delete(`${url}/9999`)
+      .set('Authorization', 'Bearer ' + authToken)
+      .expect('Content-Type', /json/)
+      .expect(404);
+    expect(response.body.success).toBe(false);
+    expect(response.body.error).toEqual({
+      status: 404,
+      type: errorTypes.notFound,
+      message: 'record to delete does not exist.'
     });
   });
 });

@@ -108,6 +108,16 @@ export const validateEmail = (email: string) => {
 };
 
 /**
+ * Check role
+ * @param role
+ * @returns true | false
+ */
+export const checkRole = (role: string) => {
+  const allowedRoles = ['SUPERADMIN', 'ADMIN', 'MODERATOR'];
+  return allowedRoles.includes(role) ? true : false;
+};
+
+/**
  * Hash plain text password
  * @param password - plain password
  * @returns hashed password (Promise)

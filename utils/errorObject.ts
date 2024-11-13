@@ -53,6 +53,18 @@ export const incorrectCredentialsError = {
   message: 'email or password is incorrect'
 };
 
+export const roleError = errorObj(
+  400,
+  errorTypes.invalidArgument,
+  'role type is not valid',
+  [
+    {
+      code: 'invalidRole',
+      message: "role must be one of 'SUPERADMIN', 'ADMIN', and 'MODERATOR'"
+    }
+  ]
+);
+
 export const authRequiredError = errorObj(
   401,
   errorTypes.unauthorized,

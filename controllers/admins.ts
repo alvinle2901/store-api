@@ -1,19 +1,22 @@
-import asyncHandler from "../middlewares/asyncHandler";
-import prisma from "../prisma/client";
+import asyncHandler from '../middlewares/asyncHandler';
+import prisma from '../prisma/client';
 import errorObj, {
   errorTypes,
   invalidEmail,
   incorrectCredentialsError,
-} from "../utils/errorObject";
-import ErrorResponse from "../utils/errorResponse";
-import { ExtendedRequest } from "../utils/extendedRequest";
+  resource404Error,
+  roleError
+} from '../utils/errorObject';
+import ErrorResponse from '../utils/errorResponse';
+import { ExtendedRequest } from '../utils/extendedRequest';
 import {
   checkRequiredFields,
+  checkRole,
   comparePassword,
   generateToken,
   hashPassword,
-  validateEmail,
-} from "../utils/helpers";
+  validateEmail
+} from '../utils/helpers';
 
 /**
  * Create admin
@@ -39,20 +42,8 @@ export const createAdmin = asyncHandler(async (req, res, next) => {
   const hashedPassword = await hashPassword(password);
 
   // Check role is either SUPERADMIN, ADMIN or MODERATOR
-  const allowedRoles = ["SUPERADMIN", "ADMIN", "MODERATOR"];
-  if (role && !allowedRoles.includes(role)) {
-    const roleError = errorObj(
-      400,
-      errorTypes.invalidArgument,
-      "role type is not valid",
-      [
-        {
-          code: "invalidRole",
-          message: "role must be one of 'SUPERADMIN', 'ADMIN', and 'MODERATOR'",
-        },
-      ]
-    );
-    return next(new ErrorResponse(roleError, 400));
+  if (role !== undefined) {
+    if (!checkRole(role)) return next(new ErrorResponse(roleError, 400));
   }
 
   const admin = await prisma.admin.create({
@@ -60,8 +51,8 @@ export const createAdmin = asyncHandler(async (req, res, next) => {
       email,
       password: hashedPassword,
       username,
-      role,
-    },
+      role
+    }
   });
 
   res.status(201).json({
@@ -69,8 +60,8 @@ export const createAdmin = asyncHandler(async (req, res, next) => {
     data: {
       username,
       email,
-      password,
-    },
+      password
+    }
   });
 });
 
@@ -89,7 +80,7 @@ export const loginAdmin = asyncHandler(async (req, res, next) => {
   if (hasError !== false) return hasError;
 
   const admin = await prisma.admin.findUnique({
-    where: { email },
+    where: { email }
   });
 
   // Throws error if email is incorrect
@@ -110,7 +101,7 @@ export const loginAdmin = asyncHandler(async (req, res, next) => {
 
   res.status(200).json({
     success: true,
-    token,
+    token
   });
 });
 
@@ -126,19 +117,19 @@ export const getMe = asyncHandler(async (req: ExtendedRequest, res, next) => {
       id: true,
       username: true,
       email: true,
-      role: true,
-    },
+      role: true
+    }
   });
 
   res.status(200).json({
     success: true,
-    data: user,
+    data: user
   });
 });
 
 /**
  * Change current logged-in admin password
- * @route   POST /api/v1/admins/change-password
+ * @route   PUT /api/v1/admins/change-password
  * @access  Private
  */
 export const changePassword = asyncHandler(
@@ -165,7 +156,7 @@ export const changePassword = asyncHandler(
         new ErrorResponse(
           {
             ...incorrectCredentialsError,
-            message: "current password is incorrect",
+            message: 'current password is incorrect'
           },
           401
         )
@@ -176,12 +167,12 @@ export const changePassword = asyncHandler(
 
     await prisma.admin.update({
       where: { id: currentUserId },
-      data: { password: hashedPassword },
+      data: { password: hashedPassword }
     });
 
     res.status(200).json({
       success: true,
-      message: "password has been updated",
+      message: 'password has been updated'
     });
   }
 );
@@ -206,18 +197,136 @@ export const updateAdminSelf = asyncHandler(
       data: {
         username,
         email,
-        updatedAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
       },
       select: {
         username: true,
         email: true,
-        updatedAt: true,
-      },
+        updatedAt: true
+      }
     });
 
     res.status(200).json({
       success: true,
-      data: updatedAdmin,
+      data: updatedAdmin
     });
   }
 );
+
+/**
+ * Get all admins
+ * @route   GET /api/v1/admins
+ * @access  Private (superadmin)
+ */
+export const getAdmins = asyncHandler(async (req, res, next) => {
+  const admins = await prisma.admin.findMany({
+    select: {
+      id: true,
+      username: true,
+      email: true,
+      active: true,
+      role: true,
+      createdAt: true,
+      updatedAt: true
+    }
+  });
+  res.status(200).json({
+    success: true,
+    count: admins.length,
+    data: admins
+  });
+});
+
+/**
+ * Get specific admin
+ * @route   GET /api/v1/admins/:id
+ * @access  Private (superadmin)
+ */
+export const getAdmin = asyncHandler(async (req, res, next) => {
+  const id = parseInt(req.params.id);
+  const admin = await prisma.admin.findUnique({
+    where: { id },
+    select: {
+      id: true,
+      username: true,
+      email: true,
+      active: true,
+      role: true,
+      createdAt: true,
+      updatedAt: true
+    }
+  });
+
+  // Throws 404 error if admin not found
+  if (!admin) return next(new ErrorResponse(resource404Error, 404));
+  res.status(200).json({
+    success: true,
+    data: admin
+  });
+});
+
+/**
+ * Update specific admin
+ * @route   PUT /api/v1/admins/:id
+ * @access  Private (superadmin)
+ */
+export const updateAdmin = asyncHandler(async (req, res, next) => {
+  const id = parseInt(req.params.id);
+  const username = req.body.username;
+  const email = req.body.email;
+  const password = req.body.password;
+  const role = req.body.role;
+  const active = req.body.active;
+
+  let hashedPassword: string | undefined;
+  const adminFound = await prisma.admin.findUnique({
+    where: { id },
+  });
+
+  // Throws 404 error if admin not found
+  if (!adminFound) return next(new ErrorResponse(resource404Error, 404));
+
+  // Check role if it is valid
+  if (role !== undefined) {
+    if (!checkRole(role)) return next(new ErrorResponse(roleError, 400));
+  }
+
+  // Hash plain text password
+  if (password) {
+    hashedPassword = await hashPassword(password);
+  }
+
+  const admin = await prisma.admin.update({
+    where: { id },
+    data: {
+      username,
+      email,
+      password: hashedPassword,
+      role,
+      active,
+      updatedAt: new Date().toISOString(),
+    },
+  });
+  
+  res.status(200).json({
+    success: true,
+    data: { ...admin, password },
+  });
+});
+
+/**
+ * Delete user by id
+ * @route   DELETE /api/v1/admins/:id
+ * @access  Private (superadmin)
+ */
+export const deleteAdmin = asyncHandler(async (req, res, next) => {
+  const id = parseInt(req.params.id);
+
+  await prisma.admin.delete({
+    where: { id }
+  });
+
+  res.status(203).json({
+    success: true
+  });
+});
