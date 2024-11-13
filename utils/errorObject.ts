@@ -44,14 +44,14 @@ export const invalidEmail = errorObj(
 export const unauthorizedError = errorObj(
   403,
   errorTypes.forbidden,
-  "not authorized"
+  'not authorized'
 );
 
-export const incorrectCredentialsError = errorObj(
-  401,
-  errorTypes.unauthorized,
-  'email or password is incorrect'
-);
+export const incorrectCredentialsError = {
+  status: 401,
+  type: errorTypes.unauthorized,
+  message: 'email or password is incorrect'
+};
 
 export const authRequiredError = errorObj(
   401,
