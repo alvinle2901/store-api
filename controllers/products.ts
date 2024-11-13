@@ -15,7 +15,6 @@ import errorObj, {
   invalidQuery,
   resource404Error
 } from '../utils/errorObject';
-import { NextFunction } from 'express';
 
 // @desc    Get all products
 // @route   GET /api/v1/categories
