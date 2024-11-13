@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "start": "tsx server.ts",
-    "devStart": "nodemon --esm server.ts",
+    "devStart": "tsx watch server.ts",
     "dev": "docker-compose up",
     "dev:down": "docker-compose down",
     "dev:build": "docker-compose up --build",
