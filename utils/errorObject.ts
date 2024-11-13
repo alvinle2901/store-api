@@ -79,11 +79,8 @@ export const page404Error = errorObj(
   'page not found'
 );
 
-export const resource404Error = errorObj(
-  404,
-  errorTypes.notFound,
-  'resource not found'
-);
+export const resource404Error = (resource: string = 'resource') =>
+  errorObj(404, errorTypes.notFound, `${resource} not found`);
 
 export const idNotSpecifiedError = errorObj(
   400,

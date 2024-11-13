@@ -1,7 +1,7 @@
 import * as request from 'supertest';
 import app from '../app';
 import 'jest-extended';
-import { resource404Error } from '../utils/errorObject';
+import { errorTypes, resource404Error } from '../utils/errorObject';
 import prisma from '../prisma/client';
 
 const url = '/api/v1/customers';
@@ -56,7 +56,7 @@ describe('Customers', () => {
         .expect(404);
 
       expect(response.body.success).toBe(false);
-      expect(response.body.error).toEqual(resource404Error);
+      expect(response.body.error).toEqual(resource404Error('customer'));
     });
   });
 
@@ -85,8 +85,8 @@ describe('Customers', () => {
 
       expect(response.body.success).toBe(false);
       expect(response.body.error).toEqual({
-        ...resource404Error,
-        message: 'record to delete does not exist.'
+        status: 404,
+        type: errorTypes.notFound
       });
     });
   });

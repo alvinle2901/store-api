@@ -329,7 +329,11 @@ describe('Admins', () => {
         .expect('Content-Type', /json/)
         .expect(404);
       expect(response.body.success).toBe(false);
-      expect(response.body.error).toEqual(resource404Error);
+      expect(response.body.error).toEqual({
+        status: 404,
+        type: 'notFound',
+        message: 'record to update not found.'
+      });
     });
   });
 
@@ -369,6 +373,7 @@ describe('Get Admins', () => {
       .set('Authorization', 'Bearer ' + authToken)
       .expect('Content-Type', /json/)
       .expect(200);
+
     expect(response.body.count).toBeNumber;
     expect(response.body.success).toBe(true);
     expect(response.body.data).toEqual(
@@ -392,6 +397,7 @@ describe('Get Admins', () => {
       .set('Authorization', 'Bearer ' + authToken)
       .expect('Content-Type', /json/)
       .expect(200);
+
     expect(response.body.success).toBe(true);
     expect(response.body.data.id).toBe(2);
   });
@@ -402,8 +408,9 @@ describe('Get Admins', () => {
       .set('Authorization', 'Bearer ' + authToken)
       .expect('Content-Type', /json/)
       .expect(404);
+
     expect(response.body.success).toBe(false);
-    expect(response.body.error).toEqual(resource404Error);
+    expect(response.body.error).toEqual(resource404Error('admin'));
   });
 });
 
@@ -412,6 +419,7 @@ describe('Delete Admin', () => {
     const adminToDelete = await prisma.admin.findUnique({
       where: { email: testAdmin.email }
     });
+
     await request(app)
       .delete(`${url}/${adminToDelete!.id}`)
       .set('Authorization', 'Bearer ' + authToken)
@@ -425,6 +433,7 @@ describe('Delete Admin', () => {
       .set('Authorization', 'Bearer ' + authToken)
       .expect('Content-Type', /json/)
       .expect(404);
+
     expect(response.body.success).toBe(false);
     expect(response.body.error).toEqual({
       status: 404,

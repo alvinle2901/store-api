@@ -258,7 +258,8 @@ export const getAdmin = asyncHandler(async (req, res, next) => {
   });
 
   // Throws 404 error if admin not found
-  if (!admin) return next(new ErrorResponse(resource404Error, 404));
+  if (!admin) return next(new ErrorResponse(resource404Error('admin'), 404));
+
   res.status(200).json({
     success: true,
     data: admin
@@ -277,14 +278,7 @@ export const updateAdmin = asyncHandler(async (req, res, next) => {
   const password = req.body.password;
   const role = req.body.role;
   const active = req.body.active;
-
   let hashedPassword: string | undefined;
-  const adminFound = await prisma.admin.findUnique({
-    where: { id },
-  });
-
-  // Throws 404 error if admin not found
-  if (!adminFound) return next(new ErrorResponse(resource404Error, 404));
 
   // Check role if it is valid
   if (role !== undefined) {
@@ -304,13 +298,13 @@ export const updateAdmin = asyncHandler(async (req, res, next) => {
       password: hashedPassword,
       role,
       active,
-      updatedAt: new Date().toISOString(),
-    },
+      updatedAt: new Date().toISOString()
+    }
   });
-  
+
   res.status(200).json({
     success: true,
-    data: { ...admin, password },
+    data: { ...admin, password }
   });
 });
 
